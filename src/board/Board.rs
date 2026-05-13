@@ -2,6 +2,7 @@ use crate::board::bitboard;
 use crate::board::bitboard::Bitboard;
 use crate::movegen::r#move::Move;
 
+#[derive(Clone)]
 pub struct Board {
 
     // White

@@ -6,7 +6,7 @@ pub mod board;
 pub mod movegen;
 
 // src/evaluation
-//pub mod evaluation;
+pub mod evaluation;
 
 // src/search
 pub mod search;

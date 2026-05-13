@@ -1,6 +1,8 @@
 use crate::board::board::Board;
+use crate::evaluation::evaluator::Evaluator;
 use crate::movegen::movegeneration::MoveGen;
 use crate::movegen::r#move::Move;
+use crate::search::search;
 
 pub struct Engine {
     movegen: MoveGen,
@@ -12,24 +14,16 @@ impl Engine {
             movegen: MoveGen::new(),
         }
     }
-
-    pub fn find_best_move(&self, board: &Board, white_to_move: bool) -> Option<Move> {
-
-        // put all possible moves in a list -> then lets start filtering
-        let mut moves = Vec::new();
-        self.movegen.generate_moves(board, white_to_move, &mut moves);
-
-        if moves.is_empty() {
-            return None;
-        }
-
-        let mut best_move = moves[0];
-        let mut best_score = i32::MIN; // signed integer -> (-) = black | (+) = white
-
-
-        // Some value of type (T)
-        Some(best_move)
+    /// Find the best move for the current position
+    pub fn find_best_move(&self, board: &Board, white_to_move: bool, depth: u8) -> Option<Move> {
+        search::Search::find_best_move(&self.movegen, board, white_to_move, depth)
     }
+
+    /// Get a static evaluation of the position
+    pub fn evaluate(&self, board: &Board) -> i32 {
+        Evaluator::evaluate(board)
+    }
+
 }
 
 impl Default for Engine {
