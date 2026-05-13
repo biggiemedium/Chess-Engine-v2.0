@@ -33,5 +33,11 @@ pub mod bitboard {
         bb & !bit(sq)
     }
 
+    // Count set bits
+    #[inline]
+    pub fn popcount(bb: Bitboard) -> u32 {
+        bb.count_ones()
+    }
+
 
 }

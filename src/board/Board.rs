@@ -1,4 +1,4 @@
-use crate::BitBoard::Bitboard;
+use crate::board::bitboard::Bitboard;
 
 pub struct Board {
 
@@ -40,24 +40,6 @@ impl Board {
 
         b.init_start();
         b
-    }
-
-    pub fn white_pieces(&self) -> Bitboard {
-        self.white_pawns
-            | self.white_knights
-            | self.white_bishops
-            | self.white_rooks
-            | self.white_queens
-            | self.white_king
-    }
-
-    pub fn black_pieces(&self) -> Bitboard {
-        self.black_pawns
-            | self.black_knights
-            | self.black_bishops
-            | self.black_rooks
-            | self.black_queens
-            | self.black_king
     }
 
     pub fn init_start(&mut self) {
