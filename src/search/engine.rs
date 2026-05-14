@@ -2,7 +2,6 @@ use crate::board::board::Board;
 use crate::evaluation::evaluator::Evaluator;
 use crate::movegen::movegeneration::MoveGen;
 use crate::movegen::r#move::Move;
-use crate::search::search;
 use crate::search::search::Search;
 
 pub struct Engine {

@@ -10,7 +10,7 @@ use crate::movegen::r#move::Move;
 
 // The purpose of Quiescence search is to only evaluate "quiet" positions,
 // or positions where there are no winning tactical moves to be made
-struct QuiescenceSearch {
+pub struct QuiescenceSearch {
     depth: i8, // to prevent search "explosion"
     evaluator: Evaluator,
     move_gen: MoveGen
@@ -18,27 +18,52 @@ struct QuiescenceSearch {
 
 impl QuiescenceSearch {
 
-    pub fn search(&self, board: &mut Board, mut alpha: i32, mut beta: i32, mut depth: u32, white_to_move: bool) -> i32 {
+    pub fn new(move_gen: MoveGen, evaluator: Evaluator) -> Self {
+        Self {
+            depth: 0,
+            evaluator,
+            move_gen,
+        }
+    }
+
+    pub fn search(
+        &self,
+        board: &mut Board,
+        movegen: &MoveGen,
+        mut alpha: i32,
+        beta: i32,
+        white_to_move: bool,
+        ply: u8
+    ) -> i32 {
 
         // what the wiki says ! (I will not be listening)
         // Step 1: implement s MVV-LVA before search to prevent search explosion
         // step 2: static exchange & delta pruning
         // step 3: qsearch
 
-        if(depth > 10) {
-            depth = 10; // clamp to 10 so we don't destroy our computer
+        const MAX_QSEARCH_DEPTH: u8 = 10;  // clamp to 10 so we don't destroy our computer
+
+        if ply >= MAX_QSEARCH_DEPTH {
+            return Evaluator::evaluate(board, white_to_move);
         }
 
-        // Stop searching once depth reaches 0
-        if depth == 0 {
-            return Evaluator::evaluate(&board, white_to_move);
+        let static_eval = Evaluator::evaluate(board, white_to_move);
+
+        if ply >= MAX_QSEARCH_DEPTH {
+            return Evaluator::evaluate(board, white_to_move);
         }
+
+        if static_eval >= beta {
+            return beta;
+        }
+        alpha = alpha.max(static_eval);
 
         let static_eval = Evaluator::evaluate(&board, white_to_move);
 
         if static_eval >= beta {
             return beta;
         }
+        alpha = alpha.max(static_eval);
 
         // Delta pruning -> only continue if a capture could improve alpha
         // https://talkchess.com/viewtopic.php?t=80325
@@ -50,11 +75,10 @@ impl QuiescenceSearch {
 
         // if we find beta cutoff earlier we stop looping
         // therefore this saves us time
-        let mut captureMoves = self.move_gen.generate_capture_moves(&board, white_to_move);
-        captureMoves.sort_by_cached_key(|m| -m.score_capture(&board));
+        let mut capture_moves = movegen.generate_capture_moves(board, white_to_move);
+        capture_moves.sort_by_cached_key(|m| -m.score_capture(board));
 
-        for mv in captureMoves {
-
+        for mv in capture_moves {
             // TODO
             // If ( losing capture ) {
             //     continue
@@ -65,21 +89,20 @@ impl QuiescenceSearch {
 
             let score = -self.search(
                 board,
-                -alpha,
+                movegen,
                 -beta,
-                depth - 1,
-                !white_to_move
+                -alpha,
+                !white_to_move,
+                ply + 1
             );
 
             board.unmake_move(&mv, white_to_move, captured);
 
-            if(score >= beta) {
+            if score >= beta {
                 return beta;
             }
 
-            if(score > alpha) {
-                alpha = score
-            }
+            alpha = alpha.max(score);
         }
 
         alpha

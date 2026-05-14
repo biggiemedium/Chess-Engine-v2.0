@@ -186,6 +186,46 @@ impl MoveGen {
     }
 
     #[inline]
+    pub fn is_king_in_check(&self, board: &Board, white_king: bool) -> bool {
+        let (king_bb, enemy_knights, enemy_bishops, enemy_rooks, enemy_queens, enemy_pawns, enemy_king) =
+            if white_king {
+                (board.white_king, board.black_knights, board.black_bishops,
+                 board.black_rooks, board.black_queens, board.black_pawns, board.black_king)
+            } else {
+                (board.black_king, board.white_knights, board.white_bishops,
+                 board.white_rooks, board.white_queens, board.white_pawns, board.white_king)
+            };
+
+        if king_bb == 0 { return false; }
+        let king_sq = king_bb.trailing_zeros() as u8;
+        let occupied = board.white_occupancy() | board.black_occupancy();
+
+        // Check for enemy knights
+        if self.knight_attacks[king_sq as usize] & enemy_knights != 0 { return true; }
+
+        // Check for enemy king (adjacent squares)
+        if self.king_attacks[king_sq as usize] & enemy_king != 0 { return true; }
+
+        // Check for enemy bishops/queens on diagonals
+        let bishop_attacks = Self::compute_bishop_attacks(king_sq, occupied);
+        if bishop_attacks & (enemy_bishops | enemy_queens) != 0 { return true; }
+
+        // Check for enemy rooks/queens on ranks/files
+        let rook_attacks = Self::compute_rook_attacks(king_sq, occupied);
+        if rook_attacks & (enemy_rooks | enemy_queens) != 0 { return true; }
+
+        // Check for enemy pawns
+        let pawn_attacks = if white_king {
+            ((bitboard::bit(king_sq) << 7) & !0x8080808080808080u64) |
+                ((bitboard::bit(king_sq) << 9) & !0x0101010101010101u64)
+        } else {
+            ((bitboard::bit(king_sq) >> 7) & !0x0101010101010101u64) |
+                ((bitboard::bit(king_sq) >> 9) & !0x8080808080808080u64)
+        };
+        pawn_attacks & enemy_pawns != 0
+    }
+
+    #[inline]
     fn generate_pawn_captures<const WHITE: bool>(
         &self,
         board: &Board,
@@ -199,8 +239,8 @@ impl MoveGen {
             let right_captures = ((pawns << 9) & !0x0101010101010101u64) & enemy;
 
             let promotion_rank = 0xFF00000000000000;
-            self.serialize_promotions(pawns, left_captures & promotion_rank, 7, true, moves);
-            self.serialize_promotions(pawns, right_captures & promotion_rank, 9, true, moves);
+            self.serialize_promotions::<true>(pawns, left_captures & promotion_rank, 7, true, moves);
+            self.serialize_promotions::<true>(pawns, right_captures & promotion_rank, 9, true, moves);
             self.serialize_moves(pawns, left_captures & !promotion_rank, 7, MoveFlags::CAPTURE, moves);
             self.serialize_moves(pawns, right_captures & !promotion_rank, 9, MoveFlags::CAPTURE, moves);
         } else {
@@ -208,8 +248,8 @@ impl MoveGen {
             let right_captures = ((pawns >> 7) & !0x0101010101010101u64) & enemy;
 
             let promotion_rank = 0x00000000000000FF;
-            self.serialize_promotions(pawns, left_captures & promotion_rank, 9, true, moves);
-            self.serialize_promotions(pawns, right_captures & promotion_rank, 7, true, moves);
+            self.serialize_promotions::<false>(pawns, left_captures & promotion_rank, 9, true, moves);
+            self.serialize_promotions::<false>(pawns, right_captures & promotion_rank, 7, true, moves);
             self.serialize_moves_backward(pawns, left_captures & !promotion_rank, 9, MoveFlags::CAPTURE, moves);
             self.serialize_moves_backward(pawns, right_captures & !promotion_rank, 7, MoveFlags::CAPTURE, moves);
         }
@@ -384,10 +424,10 @@ impl MoveGen {
         let normal = targets & !promotion_rank;
 
         if WHITE {
-            self.serialize_promotions(pawns, promotions, shift, false, moves);
+            self.serialize_promotions::<true>(pawns, promotions, shift, false, moves);
             self.serialize_moves(pawns, normal, shift, MoveFlags::NORMAL, moves);
         } else {
-            self.serialize_promotions(pawns, promotions, shift, false, moves);
+            self.serialize_promotions::<false>(pawns, promotions, shift, false, moves);
             self.serialize_moves_backward(pawns, normal, shift, MoveFlags::NORMAL, moves);
         }
     }
@@ -405,16 +445,16 @@ impl MoveGen {
         let normal = targets & !promotion_rank;
 
         if WHITE {
-            self.serialize_promotions(pawns, promotions, shift, true, moves);
+            self.serialize_promotions::<true>(pawns, promotions, shift, true, moves);
             self.serialize_moves(pawns, normal, shift, MoveFlags::CAPTURE, moves);
         } else {
-            self.serialize_promotions(pawns, promotions, shift, true, moves);
+            self.serialize_promotions::<true>(pawns, promotions, shift, true, moves);
             self.serialize_moves_backward(pawns, normal, shift, MoveFlags::CAPTURE, moves);
         }
     }
 
     #[inline]
-    fn serialize_promotions(
+    fn serialize_promotions<const WHITE: bool>(
         &self,
         sources: Bitboard,
         targets: Bitboard,
@@ -431,10 +471,11 @@ impl MoveGen {
         let mut tgt = targets;
         while tgt != 0 {
             let to = tgt.trailing_zeros() as u8;
-            let from = if shift == 7 || shift == 9 {
-                to.wrapping_sub(shift)
-            } else {
+
+            let from = if WHITE {
                 to - shift
+            } else {
+                to + shift
             };
 
             if sources & bitboard::bit(from) != 0 {

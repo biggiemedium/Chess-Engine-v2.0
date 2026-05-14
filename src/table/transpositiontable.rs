@@ -82,7 +82,10 @@ impl TranspositionTable {
         let index = (zobristHash as usize) % self.size;
 
         let replace = match self.table[index] {
-            Some(existing) => depth >= existing.depth,
+            Some(existing) => {
+                // Replace if -> deeper search OR same depth but newer age
+                depth >= existing.depth || age > existing.age
+            }
             None => true,
         };
 
@@ -98,7 +101,6 @@ impl TranspositionTable {
                 )
             );
         }
-
     }
 
     #[inline]

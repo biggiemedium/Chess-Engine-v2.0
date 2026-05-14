@@ -1,12 +1,15 @@
+use std::cmp;
 use crate::board::board::Board;
 use crate::evaluation::evaluator::Evaluator;
 use crate::movegen::movegeneration::MoveGen;
 use crate::movegen::r#move::Move;
 use crate::table::transpositiontable::TranspositionTable;
+use crate::search::quiescence_search::QuiescenceSearch;
 
 pub struct Search {
     transposition: TranspositionTable,
     nodesSearched: u64,
+    quiescence_search: QuiescenceSearch
 }
 
 impl Search {
@@ -15,6 +18,7 @@ impl Search {
         Self {
             transposition: TranspositionTable::new(1_000_000),
             nodesSearched: 0,
+            quiescence_search: QuiescenceSearch::new(MoveGen::new(), Evaluator),
         }
     }
 
@@ -39,8 +43,18 @@ impl Search {
             return None;
         }
 
+        moves.sort_by_cached_key(|m| {
+            if board.piece_at(m.to).is_some() {
+                0  // Captures first
+            } else {
+                1  // Quiet moves second
+            }
+        });
+
         let mut best_move = moves[0];
         let mut best_score = Self::NEG_INFINITY;
+        let mut alpha = Self::NEG_INFINITY;
+        let beta = Self::POS_INFINITY;
 
         for mv in moves {
             let mut board_copy = board.clone();
@@ -52,8 +66,8 @@ impl Search {
                 &mut board_copy,
                 !white_to_move,
                 depth - 1,
-                Self::NEG_INFINITY,
-                Self::POS_INFINITY,
+                -beta,
+                -alpha,
             );
 
             board_copy.unmake_move(&mv, white_to_move, captured);
@@ -62,6 +76,8 @@ impl Search {
                 best_score = score;
                 best_move = mv;
             }
+
+            alpha = cmp::max(alpha, score);
         }
 
         Some(best_move)
@@ -84,14 +100,15 @@ impl Search {
         if let Some(entry) = self.transposition.probe(zobrist_hash) {
 
             if entry.depth >= depth {
-
                 match entry.flag {
-
                     TranspositionTable::EXACT => {
                         return entry.score;
                     }
 
                     TranspositionTable::LOWER => {
+                        if entry.score >= beta {
+                            return entry.score;
+                        }
                         alpha = alpha.max(entry.score);
                     }
 
@@ -111,12 +128,7 @@ impl Search {
         }
 
         if depth == 0 {
-            let eval = Evaluator::evaluate(&board, white_to_move);
-            return if white_to_move {
-                eval
-            } else {
-                -eval
-            };
+            return self.quiescence_search.search(board, movegen, alpha, beta, white_to_move, 0);
         }
 
         let original_alpha = alpha;
@@ -124,10 +136,22 @@ impl Search {
         movegen.generate_moves(board, white_to_move, &mut moves);
 
         if moves.is_empty() {
-            // Checkmate / stalemate
-            // TODO: Replace this
-            return Self::NEG_INFINITY + 1;
+            // If king is in check and no legal moves -> checkmate
+            // If king is not in check and no legal moves -> stalemate
+            return if movegen.is_king_in_check(board, white_to_move) {
+                -(Self::POS_INFINITY - depth as i32)  // Checkmate -> (prefer faster mates)
+            } else {
+                0  // Stalemate (draw)
+            };
         }
+
+        moves.sort_by_cached_key(|m| {
+            if board.piece_at(m.to).is_some() {
+                0  // Captures first
+            } else {
+                1  // Quiet moves second
+            }
+        });
 
         let mut best_move = moves[0];
         let mut max_score = Self::NEG_INFINITY;

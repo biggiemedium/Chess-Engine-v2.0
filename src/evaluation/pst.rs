@@ -71,6 +71,17 @@ impl PieceSquareTableEvaluator {
         20, 30, 10,  0,  0, 10, 30, 20
     ];
 
+    const KING_END_GAME_TABLE: [i32; 64] = [
+        -50,-40,-30,-20,-20,-30,-40,-50,
+        -30,-20,-10,  0,  0,-10,-20,-30,
+        -30,-10, 20, 30, 30, 20,-10,-30,
+        -30,-10, 30, 40, 40, 30,-10,-30,
+        -30,-10, 30, 40, 40, 30,-10,-30,
+        -30,-10, 20, 30, 30, 20,-10,-30,
+        -30,-30,  0,  0,  0,  0,-30,-30,
+        -50,-30,-30,-30,-30,-30,-30,-50,
+        ];
+
     pub fn evaluate(board: &Board) -> i32 {
         let mut score = 0;
 
@@ -88,9 +99,20 @@ impl PieceSquareTableEvaluator {
         score -= Self::evaluate_pieces(board.black_bishops, &Self::BISHOP_TABLE, true);
         score -= Self::evaluate_pieces(board.black_rooks, &Self::ROOK_TABLE, true);
         score -= Self::evaluate_pieces(board.black_queens, &Self::QUEEN_TABLE, true);
+
         score -= Self::evaluate_pieces(board.black_king, &Self::KING_MIDDLE_GAME_TABLE, true);
 
         score
+    }
+
+    #[inline]
+    fn is_endgame() -> bool {
+        let piececount = 0;
+
+        let whiteQueenAlive = false;
+        let blackQueenAlive = false;
+
+        false // TODO
     }
 
     #[inline]
