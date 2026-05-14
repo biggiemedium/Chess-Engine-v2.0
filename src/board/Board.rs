@@ -71,6 +71,27 @@ impl Board {
         self.black_king = 0x1000000000000000;
     }
 
+    #[inline]
+    pub fn zobrist_hash(&self) -> u64 {
+        let mut hash = 0u64;
+
+        hash ^= self.white_pawns.wrapping_mul(0x9E3779B185EBCA87);
+        hash ^= self.white_knights.wrapping_mul(0xC2B2AE3D27D4EB4F);
+        hash ^= self.white_bishops.wrapping_mul(0x165667B19E3779F9);
+        hash ^= self.white_rooks.wrapping_mul(0x85EBCA77C2B2AE63);
+        hash ^= self.white_queens.wrapping_mul(0x27D4EB2F165667C5);
+        hash ^= self.white_king.wrapping_mul(0x94D049BB133111EB);
+
+        hash ^= self.black_pawns.wrapping_mul(0x2545F4914F6CDD1D);
+        hash ^= self.black_knights.wrapping_mul(0x369DEA0F31A53F85);
+        hash ^= self.black_bishops.wrapping_mul(0xDB4F0B9175AE2165);
+        hash ^= self.black_rooks.wrapping_mul(0xBBE0563303A4615F);
+        hash ^= self.black_queens.wrapping_mul(0xA0F2EC75A1FE1575);
+        hash ^= self.black_king.wrapping_mul(0x89E182857D9ED689);
+
+        hash
+    }
+
     /// Get all white pieces as a single bitboard
     #[inline]
     pub fn white_occupancy(&self) -> Bitboard {

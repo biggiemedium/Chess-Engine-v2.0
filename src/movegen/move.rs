@@ -1,4 +1,5 @@
 use crate::board::bitboard::{self, Bitboard};
+use crate::board::board::Board;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct MoveFlags(u8);
@@ -69,6 +70,26 @@ impl Move {
             || (self.flags.0 >= MoveFlags::PROMOTION_CAPTURE_KNIGHT.0
             && self.flags.0 <= MoveFlags::PROMOTION_CAPTURE_QUEEN.0)
             || self.flags.0 == MoveFlags::EN_PASSANT.0
+    }
+
+    #[inline]
+    pub fn score_capture(&self, board: &Board) -> i32 {
+        if !self.is_capture() {
+            return 0;
+        }
+
+        match self.flags {
+            f if f == MoveFlags::PROMOTION_CAPTURE_QUEEN => 900,
+            f if f == MoveFlags::PROMOTION_CAPTURE_ROOK => 500,
+            f if f == MoveFlags::PROMOTION_CAPTURE_BISHOP => 300,
+            f if f == MoveFlags::PROMOTION_CAPTURE_KNIGHT => 300,
+
+            MoveFlags::CAPTURE => 100,
+
+            MoveFlags::EN_PASSANT => 150,
+
+            _ => 0,
+        }
     }
 
     #[inline]

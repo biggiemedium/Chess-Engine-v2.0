@@ -155,6 +155,152 @@ impl MoveGen {
         attacks
     }
 
+    pub fn generate_capture_moves(&self, board: &Board, white_to_move: bool) -> Vec<Move> {
+        let mut moves = Vec::new();
+
+        let (friendly, enemy) = if white_to_move {
+            (board.white_occupancy(), board.black_occupancy())
+        } else {
+            (board.black_occupancy(), board.white_occupancy())
+        };
+
+        let occupied = friendly | enemy;
+
+        if white_to_move {
+            self.generate_pawn_captures::<true>(board, enemy, &mut moves);
+            self.generate_knight_captures(board.white_knights, friendly, enemy, &mut moves);
+            self.generate_king_captures(board.white_king, friendly, enemy, &mut moves);
+            self.generate_rook_captures(board.white_rooks, occupied, friendly, enemy, &mut moves);
+            self.generate_bishop_captures(board.white_bishops, occupied, friendly, enemy, &mut moves);
+            self.generate_queen_captures(board.white_queens, occupied, friendly, enemy, &mut moves);
+        } else {
+            self.generate_pawn_captures::<false>(board, enemy, &mut moves);
+            self.generate_knight_captures(board.black_knights, friendly, enemy, &mut moves);
+            self.generate_king_captures(board.black_king, friendly, enemy, &mut moves);
+            self.generate_rook_captures(board.black_rooks, occupied, friendly, enemy, &mut moves);
+            self.generate_bishop_captures(board.black_bishops, occupied, friendly, enemy, &mut moves);
+            self.generate_queen_captures(board.black_queens, occupied, friendly, enemy, &mut moves);
+        }
+
+        moves
+    }
+
+    #[inline]
+    fn generate_pawn_captures<const WHITE: bool>(
+        &self,
+        board: &Board,
+        enemy: Bitboard,
+        moves: &mut Vec<Move>,
+    ) {
+        let pawns = if WHITE { board.white_pawns } else { board.black_pawns };
+
+        if WHITE {
+            let left_captures = ((pawns << 7) & !0x8080808080808080u64) & enemy;
+            let right_captures = ((pawns << 9) & !0x0101010101010101u64) & enemy;
+
+            let promotion_rank = 0xFF00000000000000;
+            self.serialize_promotions(pawns, left_captures & promotion_rank, 7, true, moves);
+            self.serialize_promotions(pawns, right_captures & promotion_rank, 9, true, moves);
+            self.serialize_moves(pawns, left_captures & !promotion_rank, 7, MoveFlags::CAPTURE, moves);
+            self.serialize_moves(pawns, right_captures & !promotion_rank, 9, MoveFlags::CAPTURE, moves);
+        } else {
+            let left_captures = ((pawns >> 9) & !0x8080808080808080u64) & enemy;
+            let right_captures = ((pawns >> 7) & !0x0101010101010101u64) & enemy;
+
+            let promotion_rank = 0x00000000000000FF;
+            self.serialize_promotions(pawns, left_captures & promotion_rank, 9, true, moves);
+            self.serialize_promotions(pawns, right_captures & promotion_rank, 7, true, moves);
+            self.serialize_moves_backward(pawns, left_captures & !promotion_rank, 9, MoveFlags::CAPTURE, moves);
+            self.serialize_moves_backward(pawns, right_captures & !promotion_rank, 7, MoveFlags::CAPTURE, moves);
+        }
+    }
+
+    #[inline]
+    fn generate_knight_captures(
+        &self,
+        knights: Bitboard,
+        friendly: Bitboard,
+        enemy: Bitboard,
+        moves: &mut Vec<Move>,
+    ) {
+        let mut k = knights;
+        while k != 0 {
+            let from = k.trailing_zeros() as u8;
+            let captures = self.knight_attacks[from as usize] & enemy;
+            self.serialize_moves_from_square(from, captures, MoveFlags::CAPTURE, moves);
+            k &= k - 1;
+        }
+    }
+
+    #[inline]
+    fn generate_king_captures(
+        &self,
+        king: Bitboard,
+        friendly: Bitboard,
+        enemy: Bitboard,
+        moves: &mut Vec<Move>,
+    ) {
+        if king == 0 { return; }
+        let from = king.trailing_zeros() as u8;
+        let captures = self.king_attacks[from as usize] & enemy;
+        self.serialize_moves_from_square(from, captures, MoveFlags::CAPTURE, moves);
+    }
+
+    #[inline]
+    fn generate_rook_captures(
+        &self,
+        rooks: Bitboard,
+        occupied: Bitboard,
+        friendly: Bitboard,
+        enemy: Bitboard,
+        moves: &mut Vec<Move>,
+    ) {
+        let mut r = rooks;
+        while r != 0 {
+            let from = r.trailing_zeros() as u8;
+            let captures = Self::compute_rook_attacks(from, occupied) & enemy;
+            self.serialize_moves_from_square(from, captures, MoveFlags::CAPTURE, moves);
+            r &= r - 1;
+        }
+    }
+
+    #[inline]
+    fn generate_bishop_captures(
+        &self,
+        bishops: Bitboard,
+        occupied: Bitboard,
+        friendly: Bitboard,
+        enemy: Bitboard,
+        moves: &mut Vec<Move>,
+    ) {
+        let mut b = bishops;
+        while b != 0 {
+            let from = b.trailing_zeros() as u8;
+            let captures = Self::compute_bishop_attacks(from, occupied) & enemy;
+            self.serialize_moves_from_square(from, captures, MoveFlags::CAPTURE, moves);
+            b &= b - 1;
+        }
+    }
+
+    #[inline]
+    fn generate_queen_captures(
+        &self,
+        queens: Bitboard,
+        occupied: Bitboard,
+        friendly: Bitboard,
+        enemy: Bitboard,
+        moves: &mut Vec<Move>,
+    ) {
+        let mut q = queens;
+        while q != 0 {
+            let from = q.trailing_zeros() as u8;
+            let captures = (Self::compute_rook_attacks(from, occupied)
+                | Self::compute_bishop_attacks(from, occupied)) & enemy;
+            self.serialize_moves_from_square(from, captures, MoveFlags::CAPTURE, moves);
+            q &= q - 1;
+        }
+    }
+
     pub fn generate_moves(&self, board: &Board, white_to_move: bool, moves: &mut Vec<Move>) {
         moves.clear();
 

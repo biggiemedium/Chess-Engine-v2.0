@@ -3,13 +3,21 @@ use crate::board::bitboard;
 
 pub struct MaterialEvaluator;
 
+pub mod piece_value {
+    pub const PAWN: i32 = 100;
+    pub const KNIGHT: i32 = 320;
+    pub const BISHOP: i32 = 330;
+    pub const ROOK: i32 = 500;
+    pub const QUEEN: i32 = 900;
+}
+
 impl MaterialEvaluator {
 
-    const PAWN_VALUE: i32 = 100;
-    const KNIGHT_VALUE: i32 = 320;
-    const BISHOP_VALUE: i32 = 330;
-    const ROOK_VALUE: i32 = 500;
-    const QUEEN_VALUE: i32 = 900;
+    pub const PAWN_VALUE: i32 = 100;
+    pub const KNIGHT_VALUE: i32 = 320;
+    pub const BISHOP_VALUE: i32 = 330;
+    pub const ROOK_VALUE: i32 = 500;
+    pub const QUEEN_VALUE: i32 = 900;
 
     pub fn evaluate(board: &Board) -> i32 {
         let mut score = 0;
