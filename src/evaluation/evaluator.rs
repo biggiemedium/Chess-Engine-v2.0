@@ -19,7 +19,7 @@ Basic Evaluation Features
 */
 impl Evaluator {
 
-    pub fn evaluate(board: &Board) -> i32 {
+    pub fn evaluate(board: &Board, white_to_move: bool) -> i32 {
         let mut score = 0;
 
         // material evaluation
@@ -31,6 +31,10 @@ impl Evaluator {
         // king saftey
         score += kingsafteyevalution::KingSafteyEvaluation::evaluate(board);
 
-        score
+        if white_to_move {
+            score
+        } else {
+            -score
+        }
     }
 }

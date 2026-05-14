@@ -31,10 +31,10 @@ impl QuiescenceSearch {
 
         // Stop searching once depth reaches 0
         if depth == 0 {
-            return Evaluator::evaluate(&board);
+            return Evaluator::evaluate(&board, white_to_move);
         }
 
-        let static_eval = Evaluator::evaluate(&board);
+        let static_eval = Evaluator::evaluate(&board, white_to_move);
 
         if static_eval >= beta {
             return beta;

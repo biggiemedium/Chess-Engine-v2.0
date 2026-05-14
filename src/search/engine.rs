@@ -23,8 +23,8 @@ impl Engine {
     }
 
     /// Get a static evaluation of the position
-    pub fn evaluate(&self, board: &Board) -> i32 {
-        Evaluator::evaluate(board)
+    pub fn evaluate(&self, board: &Board, white_to_move: bool) -> i32 {
+        Evaluator::evaluate(board, white_to_move)
     }
 
 }

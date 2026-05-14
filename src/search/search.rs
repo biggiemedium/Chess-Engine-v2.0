@@ -111,7 +111,7 @@ impl Search {
         }
 
         if depth == 0 {
-            let eval = Evaluator::evaluate(&board);
+            let eval = Evaluator::evaluate(&board, white_to_move);
             return if white_to_move {
                 eval
             } else {
