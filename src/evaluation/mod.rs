@@ -3,3 +3,4 @@ pub mod evaluator;
 pub mod pst;
 pub mod kingsafteyevalution;
 pub mod pawnstructure;
+pub mod trappedpiece;

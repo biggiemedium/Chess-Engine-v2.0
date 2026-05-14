@@ -4,8 +4,8 @@ use crate::movegen::r#move::{Move, MoveFlags};
 
 pub struct MoveGen {
     // Pre-computed attack tables for sliding pieces
-    knight_attacks: [Bitboard; 64],
-    king_attacks: [Bitboard; 64],
+    pub knight_attacks: [Bitboard; 64],
+    pub king_attacks: [Bitboard; 64],
 }
 
 impl MoveGen {
@@ -61,7 +61,7 @@ impl MoveGen {
     }
 
     #[inline]
-    fn compute_rook_attacks(sq: u8, occupied: Bitboard) -> Bitboard {
+    pub fn compute_rook_attacks(sq: u8, occupied: Bitboard) -> Bitboard {
         let mut attacks = 0u64;
         let file = sq % 8;
         let rank = sq / 8;
@@ -448,7 +448,7 @@ impl MoveGen {
             self.serialize_promotions::<true>(pawns, promotions, shift, true, moves);
             self.serialize_moves(pawns, normal, shift, MoveFlags::CAPTURE, moves);
         } else {
-            self.serialize_promotions::<true>(pawns, promotions, shift, true, moves);
+            self.serialize_promotions::<false>(pawns, promotions, shift, true, moves);  // ✅ Fixed
             self.serialize_moves_backward(pawns, normal, shift, MoveFlags::CAPTURE, moves);
         }
     }
