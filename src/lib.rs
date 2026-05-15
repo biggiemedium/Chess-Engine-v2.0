@@ -16,3 +16,6 @@ pub mod table;
 
 // src/utility
 pub mod utility;
+
+// src/network
+pub mod Network;

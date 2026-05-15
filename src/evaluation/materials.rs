@@ -1,4 +1,4 @@
-use crate::board::board::Board;
+use crate::board::board::{Board, PieceType};
 use crate::board::bitboard;
 
 pub struct MaterialEvaluator;
@@ -37,5 +37,16 @@ impl MaterialEvaluator {
         score -= bitboard::popcount(board.black_queens) as i32 * Self::QUEEN_VALUE;
 
         score
+    }
+
+    pub fn piece_type_value(pt: PieceType) -> i32 {
+        match pt {
+            PieceType::Pawn   => Self::PAWN_VALUE,
+            PieceType::Knight => Self::KNIGHT_VALUE,
+            PieceType::Bishop => Self::BISHOP_VALUE,
+            PieceType::Rook   => Self::ROOK_VALUE,
+            PieceType::Queen  => Self::QUEEN_VALUE,
+            PieceType::King   => 20_000,
+        }
     }
 }

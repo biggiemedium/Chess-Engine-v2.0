@@ -128,7 +128,7 @@ impl Search {
         }
 
         if depth == 0 {
-            return self.quiescence_search.search(board, movegen, alpha, beta, white_to_move, 0);
+            return QuiescenceSearch::search(board, movegen, alpha, beta, white_to_move, 0);
         }
 
         let original_alpha = alpha;

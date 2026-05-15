@@ -1,7 +1,8 @@
 
 use crate::board::board::Board;
 use crate::evaluation::{materials, pst, kingsafteyevalution};
-use crate::evaluation::pawnstructure::PawnStructureEvaluator;
+use crate::evaluation::pawnevaluation::PawnStructureEvaluator;
+use crate::evaluation::tempoeval::TempoEvaluator;
 use crate::evaluation::trappedpiece::{MobilityEvaluator, TrappedPieceEvaluator};
 use crate::movegen::movegeneration::MoveGen;
 
@@ -15,7 +16,6 @@ Basic Evaluation Features
 - Center Control - https://www.chessprogramming.org/Center_Control
 - Connectivity - https://www.chessprogramming.org/Connectivity
 - Space - https://www.chessprogramming.org/Space
-- Tempo - https://www.chessprogramming.org/Tempo
 */
 impl Evaluator {
 
@@ -37,6 +37,9 @@ impl Evaluator {
 
         // pawn structure
         score += PawnStructureEvaluator::evaluate(board);
+        
+        // Tempo
+        score += TempoEvaluator::evaluate(board, white_to_move);
 
         // If movegen is available -> evaluate mobility and trapped pieces
         if let Some(mg) = movegen {
